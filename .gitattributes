@@ -1,0 +1,2 @@
+# LF in the repository and in the working tree, on every OS (G-5): Prettier and the CI expect it.
+* text=auto eol=lf
