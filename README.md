@@ -4,17 +4,19 @@ Container (shell) of the web interface of the **Marketplace Agrícola Huila** di
 React 19, TypeScript (strict) and Vite. It will own the **single HTTP client**, the **session**
 and the **design system** (`market-agri-docs/12-ux-ui/design-system.md`), and mount the domain
 portals (`auth-portal`, `catalog-portal`, `transactions-portal`) with Module Federation
-(Annex H; ADR-021, planned). Sub-tasks: HU-PLAT-008 (shell), HU-PLAT-009 (simulated API),
+(Annex H; ADR-021). Sub-tasks: HU-PLAT-008 (shell), HU-PLAT-009 (simulated API),
 HU-PLAT-010 (status panel).
 
 ## Structure (Annex H)
 
 ```
-src/app/App.tsx         routes: home and the 404 page
-src/core/auth/          the session (sessionStorage) and useSession; exposed later as shell/session
-src/core/http/          the single HTTP client: gateway URL, token, X-Correlation-Id, 10 s, errors
-src/shared/ui/          design-system components (exposed later as shell/ui): Button, Alert, Badge…
-src/layout/             frame of the application (Shell, Wordmark) and the container's own pages
+src/app/App.tsx         routes: home, one route per portal (protected ones behind RequireAuth), 404
+src/core/auth/          session, useSession, RequireAuth (exposed as shell/session, …/useSession, …/RequireAuth)
+src/core/errors/        RemoteBoundary: a portal that cannot load or fails only warns in its own area
+src/core/http/          the single HTTP client (shell/apiClient): gateway URL, token, X-Correlation-Id, 10 s
+src/remotes/            registry of the portals (route, title, loader), navigation by role, remotes.d.ts
+src/shared/ui/          design-system components, exposed as shell/ui (index.ts)
+src/layout/             frame of the application (Shell with the navigation, Wordmark), home and 404
 src/styles/             design tokens, base styles and utilities (12-ux-ui/design-system.md)
 test/unit/              tests that need nothing (job `ci`)
 test/component/         components in jsdom (job `ci`)
@@ -28,13 +30,16 @@ Levels and the branch where each one is a required check:
 starts with a `test(...)` commit holding the failing tests.
 
 ```bash
-cp .env.example .env      # VITE_GATEWAY_URL
+cp .env.example .env      # VITE_GATEWAY_URL and the portals' remoteEntry URLs
 npm ci
 npm run test:unit
 npm run test:component
 npm run build             # tsc + vite build → dist/
 npm run dev               # http://localhost:5173
 ```
+
+The portals run on their own dev servers (5174 auth, 5175 catalog, 5176 transactions; see
+`.env.example`). A portal that is not running only shows its notice: the container still works.
 
 ## Branches
 
