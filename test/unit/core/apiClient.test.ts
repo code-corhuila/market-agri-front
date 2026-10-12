@@ -18,7 +18,6 @@ function json(status: number, body: unknown): Response {
 function signIn() {
   setSession({
     accessToken: 'the-token',
-    refreshToken: 'refresh',
     expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
     user: { id: 'u-1', name: 'Ana', email: 'ana@example.co', role: 'BUYER' },
   });
@@ -69,6 +68,17 @@ describe('apiClient', () => {
     await apiClient.get('/api/v1/catalog/products');
     expect(sentRequest(fetchMock, 0).headers.has('Authorization')).toBe(false);
     expect(sentRequest(fetchMock, 1).headers.get('Authorization')).toBe('Bearer the-token');
+  });
+
+  it('sends no Authorization with an expired session', async () => {
+    setSession({
+      accessToken: 'expired-token',
+      expiresAt: '2020-01-01T00:00:00Z',
+      user: { id: 'u-1', name: 'Ana', email: 'ana@example.co', role: 'BUYER' },
+    });
+    fetchMock.mockResolvedValue(json(200, {}));
+    await apiClient.get('/api/v1/catalog/products');
+    expect(sentRequest(fetchMock).headers.has('Authorization')).toBe(false);
   });
 
   it('sends a new X-Correlation-Id on every request', async () => {

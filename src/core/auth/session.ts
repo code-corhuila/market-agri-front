@@ -1,12 +1,13 @@
 /**
  * The session of the person, kept only in the container (Annex H): the portals read it through
- * `shell/session` and never store tokens of their own. Shape = login response (api-contract D-C3).
+ * `shell/session` and never store tokens of their own. Taken from the login response (D-C3)
+ * without its `refreshToken`: there is no refresh flow in this delivery (HU-AUTH-003), so it is
+ * not kept where any script of the page could read it.
  */
 export type Role = 'PRODUCER' | 'BUYER' | 'ADMIN';
 
 export interface Session {
   accessToken: string;
-  refreshToken: string;
   /** ISO 8601 instant; after it the session no longer counts. */
   expiresAt: string;
   user: { id: string; name: string; email: string; role: Role };
@@ -38,12 +39,19 @@ export function getSession(): Session | null {
     cachedText = text;
     cachedSession = parse(text);
   }
-  if (cachedSession && Date.parse(cachedSession.expiresAt) <= Date.now()) return null;
+  if (cachedSession && Date.parse(cachedSession.expiresAt) <= Date.now()) {
+    // An expired token is removed at once: it is never sent nor left in storage. No notify here:
+    // this runs while React reads the snapshot, and the result (null) is already what it returns.
+    sessionStorage.removeItem(STORAGE_KEY);
+    cachedText = null;
+    cachedSession = null;
+  }
   return cachedSession;
 }
 
-export function setSession(session: Session): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+export function setSession({ accessToken, expiresAt, user }: Session): void {
+  // Only these fields: whatever else the caller passes (the login's refreshToken) is dropped.
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken, expiresAt, user }));
   notify();
 }
 

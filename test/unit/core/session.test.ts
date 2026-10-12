@@ -8,7 +8,6 @@ const IN_ONE_HOUR = () => new Date(Date.now() + 3_600_000).toISOString();
 function aSession(overrides: Partial<Session> = {}): Session {
   return {
     accessToken: 'header.payload.signature',
-    refreshToken: 'refresh-token',
     expiresAt: IN_ONE_HOUR(),
     user: {
       id: '7b1c8f3e-2d4a-4f6b-9c1e-0a2b3c4d5e6f',
@@ -38,9 +37,15 @@ describe('session', () => {
     expect(getSession()).toBeNull();
   });
 
-  it('treats an expired session as no session', () => {
+  it('treats an expired session as no session and removes it from storage', () => {
     setSession(aSession({ expiresAt: '2020-01-01T00:00:00Z' }));
     expect(getSession()).toBeNull();
+    expect(sessionStorage.getItem('market-agri.session')).toBeNull();
+  });
+
+  it('never keeps a refresh token', () => {
+    setSession({ ...aSession(), refreshToken: 'from-the-login-response' } as Session);
+    expect(sessionStorage.getItem('market-agri.session')).not.toContain('refreshToken');
   });
 
   it('treats a corrupted stored value as no session', () => {

@@ -15,7 +15,6 @@ describe('useSession', () => {
     act(() =>
       setSession({
         accessToken: 't',
-        refreshToken: 'r',
         expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
         user: { id: 'u-1', name: 'José Muñoz', email: 'jose@example.co', role: 'BUYER' },
       }),
