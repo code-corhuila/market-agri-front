@@ -32,3 +32,5 @@ jobs:
       - run: npm run test:unit
       - run: npm run test:component
       - run: npm run build
+      - name: Docker image (build context and build, R-21)
+        run: bash test/docker/image.sh
