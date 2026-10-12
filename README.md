@@ -13,6 +13,7 @@ HU-PLAT-010 (status panel).
 src/app/App.tsx         routes: home and the 404 page
 src/core/auth/          the session (sessionStorage) and useSession; exposed later as shell/session
 src/core/http/          the single HTTP client: gateway URL, token, X-Correlation-Id, 10 s, errors
+src/shared/ui/          design-system components (exposed later as shell/ui): Button, Alert, Badge…
 src/layout/             frame of the application (Shell, Wordmark) and the container's own pages
 src/styles/             design tokens, base styles and utilities (12-ux-ui/design-system.md)
 test/unit/              tests that need nothing (job `ci`)
