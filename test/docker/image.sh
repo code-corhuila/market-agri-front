@@ -24,15 +24,18 @@ context="$(mktemp -d)"
 trap cleanup EXIT
 plant node_modules/.planted
 plant dist/.planted
-plant .env
 plant debug.log
+# Where secrets live on a developer machine: Vite's local env files and private keys.
+SECRETS=(.env .env.local .env.production.local server.key cert.p12 cert.pfx tls.crt id_rsa
+  deploy/tls/server.key src/.env.local)
+for secret in "${SECRETS[@]}"; do plant "$secret"; done
 
 # Git Bash passes the path to docker.exe untranslated inside "dest=…": cygpath gives C:/… there.
 dest="$(cygpath -m "$context" 2> /dev/null || echo "$context")"
 docker build -q -f test/docker/context.Dockerfile --output "type=local,dest=$dest" . > /dev/null \
   || { echo "FAIL - the build context could not be exported"; exit 1; }
 
-for excluded in node_modules dist .env .git debug.log; do
+for excluded in node_modules dist .git debug.log "${SECRETS[@]}"; do
   if [ -e "$context/$excluded" ]; then fail "the context leaves out $excluded"; else pass "the context leaves out $excluded"; fi
 done
 # What deploy/Dockerfile and `tsc -b` read: excluding any of it would break the build.

@@ -1,11 +1,20 @@
 # The build context of deploy/Dockerfile (R-21). The image installs its own dependencies with
 # npm ci and builds dist itself: copying the developer's copies would overwrite them, and
-# node_modules installed on Windows does not run on Linux. Secrets never reach the image.
+# node_modules installed on Windows does not run on Linux. Local environment files (Vite keeps
+# real values in .env*.local) and private keys stay out too, in any folder (`**/`);
+# test/docker/image.sh checks each.
 node_modules
 dist
 .__mf__temp
-.env
-*.log
-*.pem
+**/.env*
+**/*.local
+**/*.log
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.crt
+**/id_rsa*
+**/id_ed25519*
 tsconfig.tsbuildinfo
 .git
