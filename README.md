@@ -11,9 +11,9 @@ HU-PLAT-010 (status panel).
 
 ```
 src/app/App.tsx         routes: home and the 404 page
-src/layout/             frame of the application (Shell) and the container's own pages
-test/unit/              tests that need nothing (job `ci`); the first one arrives with the tokens
-                        (HU-PLAT-008, branch 2) — until then `--passWithNoTests` keeps the job green
+src/layout/             frame of the application (Shell, Wordmark) and the container's own pages
+src/styles/             design tokens, base styles and utilities (12-ux-ui/design-system.md)
+test/unit/              tests that need nothing (job `ci`)
 test/component/         components in jsdom (job `ci`)
 deploy/                 Dockerfile (npm ci), nginx.conf, compose.yml (included by infra)
 ```
