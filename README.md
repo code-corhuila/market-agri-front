@@ -18,6 +18,7 @@ src/layout/             frame of the application (Shell, Wordmark) and the conta
 src/styles/             design tokens, base styles and utilities (12-ux-ui/design-system.md)
 test/unit/              tests that need nothing (job `ci`)
 test/component/         components in jsdom (job `ci`)
+test/docker/            the image: build context after .dockerignore, and the build (job `ci`)
 deploy/                 Dockerfile (npm ci), nginx.conf, compose.yml (included by infra)
 ```
 
@@ -34,6 +35,7 @@ npm run test:unit
 npm run test:component
 npm run build             # tsc + vite build → dist/
 npm run dev               # http://localhost:5173
+bash test/docker/image.sh # the image builds and never carries node_modules, dist or .env
 ```
 
 ## Branches

@@ -1,0 +1,11 @@
+# The build context of deploy/Dockerfile (R-21). The image installs its own dependencies with
+# npm ci and builds dist itself: copying the developer's copies would overwrite them, and
+# node_modules installed on Windows does not run on Linux. Secrets never reach the image.
+node_modules
+dist
+.__mf__temp
+.env
+*.log
+*.pem
+tsconfig.tsbuildinfo
+.git
