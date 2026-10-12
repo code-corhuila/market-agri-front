@@ -36,6 +36,34 @@ describe('Field', () => {
     expect(screen.queryByText('Solo dígitos, en pesos.')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['select', <select key="s" />],
+    ['textarea', <textarea key="t" />],
+  ])('wires a %s the same way as an input', (_name, control) => {
+    render(
+      <Field label="Categoría" error="Elija una categoría.">
+        {control}
+      </Field>,
+    );
+    const element = screen.getByLabelText('Categoría');
+    expect(element).toHaveAttribute('aria-invalid', 'true');
+    expect(element).toHaveAccessibleDescription('Elija una categoría.');
+  });
+
+  it('keeps the id and the description the control already had', () => {
+    render(
+      <>
+        <p id="price-rules">Sin decimales.</p>
+        <Field label="Precio" error="Escriba un número entero.">
+          <input id="price" aria-describedby="price-rules" />
+        </Field>
+      </>,
+    );
+    const input = screen.getByLabelText('Precio');
+    expect(input).toHaveAttribute('id', 'price');
+    expect(input).toHaveAccessibleDescription('Sin decimales. Escriba un número entero.');
+  });
+
   it('is valid when there is no error', () => {
     render(
       <Field label="Precio">
