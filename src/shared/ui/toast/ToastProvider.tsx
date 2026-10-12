@@ -12,6 +12,8 @@ interface ToastItem {
 
 /** How long a toast stays (design-system.md: about 4 s). */
 const DISMISS_MS = 4000;
+/** Notices shown at once; a new one removes the oldest, so a burst never fills the screen. */
+const MAX_VISIBLE = 3;
 const ICON = { success: CheckCircle2, error: AlertCircle, info: Info };
 
 /** Short notices in the top right corner, read politely (`aria-live`) by screen readers. */
@@ -29,7 +31,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback(
     (kind: ToastKind, message: string) => {
       const id = ++nextId.current;
-      setToasts((list) => [...list, { id, kind, message }]);
+      // The timer of a removed oldest notice still fires later and finds nothing to remove.
+      setToasts((list) => [...list, { id, kind, message }].slice(-MAX_VISIBLE));
       timers.current.set(
         id,
         setTimeout(() => remove(id), DISMISS_MS),
