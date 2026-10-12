@@ -15,7 +15,9 @@ export function Shell() {
     <div className={styles.shell}>
       <header className={styles.header}>
         <div className={`container ${styles.headerInner}`}>
-          <Link to="/" className={styles.brand} aria-label="Ir al inicio">
+          {/* The visible wordmark is the accessible name (WCAG 2.5.3). A plain Link on purpose:
+              the brand is not a navigation item; the role navigation (remotes branch) uses NavLink. */}
+          <Link to="/" className={styles.brand}>
             <Wordmark />
           </Link>
         </div>

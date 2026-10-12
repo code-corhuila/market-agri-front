@@ -16,9 +16,10 @@ describe('shell layout', () => {
   it('shows a header whose wordmark links to the home page', () => {
     renderAt('/no-existe');
     const header = screen.getByRole('banner');
-    const home = within(header).getByRole('link', { name: 'Ir al inicio' });
+    // The accessible name is the visible text, not a different aria-label (WCAG 2.5.3).
+    const home = within(header).getByRole('link', { name: 'Marketplace Agrícola Huila' });
     expect(home).toHaveAttribute('href', '/');
-    expect(home).toHaveTextContent('Marketplace Agrícola Huila');
+    expect(home).not.toHaveAttribute('aria-label');
   });
 
   it('renders the active page inside main', () => {
