@@ -5,6 +5,7 @@ import { RemotePage } from '../remotes/RemotePage';
 import { HomePage } from '../layout/HomePage';
 import { NotFoundPage } from '../layout/NotFoundPage';
 import { Shell } from '../layout/Shell';
+import { ToastProvider } from '../shared/ui/toast';
 
 export function AppRoutes() {
   return (
@@ -34,8 +35,10 @@ export function AppRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
