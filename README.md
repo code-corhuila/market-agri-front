@@ -1,25 +1,38 @@
 # market-agri-front
 
-> Front-end shell: packages the domain UIs
+Container (shell) of the web interface of the **Marketplace Agrícola Huila** distributed system:
+React 19, TypeScript (strict) and Vite. It will own the **single HTTP client**, the **session**
+and the **design system** (`market-agri-docs/12-ux-ui/design-system.md`), and mount the domain
+portals (`auth-portal`, `catalog-portal`, `transactions-portal`) with Module Federation
+(Annex H; ADR-021, planned). Sub-tasks: HU-PLAT-008 (shell), HU-PLAT-009 (simulated API),
+HU-PLAT-010 (status panel).
 
-Part of the **LMS Library** distributed system — team `lms-library`, Grupo 2.
-Governance and documentation live in [`library-docs`](https://github.com/code-corhuila/library-docs).
-
-## Branching
-
-Three permanent branches. **None of them accepts a direct commit** — you enter through a child
-branch and leave through a Pull Request.
+## Structure (Annex H)
 
 ```
-develop  <--PR--  feat/... fix/... chore/...
-qa       <--PR--  qa/...
-main     <--PR--  release/...  hotfix/...
+src/app/App.tsx         routes: home and the 404 page
+src/layout/             frame of the application (Shell) and the container's own pages
+test/unit/              tests that need nothing (job `ci`); the first one arrives with the tokens
+                        (HU-PLAT-008, branch 2) — until then `--passWithNoTests` keeps the job green
+test/component/         components in jsdom (job `ci`)
+deploy/                 Dockerfile (npm ci), nginx.conf, compose.yml (included by infra)
 ```
 
-Promotion happens **by re-application** (`git cherry-pick -x`), never by merging one permanent
-branch into another: `merge develop -> qa` and `merge qa -> main` do not exist in this model.
+## Tests
 
-`main` requires **1 approval from `ariel5253`**. On `develop` and `qa` the team sets its own review
-rule.
+Levels and the branch where each one is a required check:
+`market-agri-docs/11-quality/testing-strategy.md`, _test levels per branch_. Every sub-task branch
+starts with a `test(...)` commit holding the failing tests.
 
-Full policy: `00-governance/branching-policy.md` in `library-docs`.
+```bash
+npm ci
+npm run test:unit
+npm run test:component
+npm run build             # tsc + vite build → dist/
+npm run dev               # http://localhost:5173
+```
+
+## Branches
+
+`develop` ← `feat/…`, `fix/…`, `chore/…` · `qa` ← promotion · `main` ← `release/…`, `hotfix/…`.
+Rules: `market-agri-docs/00-governance/git-conventions.md`.
