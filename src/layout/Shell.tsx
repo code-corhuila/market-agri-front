@@ -1,4 +1,9 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
+import { clearSession } from '../core/auth/session';
+import { useSession } from '../core/auth/useSession';
+import { navItemsFor } from '../remotes/registry';
+import { Button } from '../shared/ui/Button';
+import { cx } from '../shared/ui/cx';
 import styles from './Shell.module.css';
 import { Wordmark } from './Wordmark';
 
@@ -7,19 +12,43 @@ const PROJECT_NAME =
 
 /**
  * Frame of the application (design-system.md, "Layout and responsive"): persistent header with
- * the wordmark, the active page or portal in `main`, and the footer. Navigation by role and the
- * backend status join the header and footer in later branches (HU-PLAT-008 remotes, HU-PLAT-010).
+ * the wordmark and the navigation by role, the active page or portal in `main`, and the footer.
+ * The backend status joins the footer with the status panel (HU-PLAT-010).
  */
 export function Shell() {
+  const session = useSession();
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    cx(styles.navLink, isActive && styles.navLinkActive);
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
         <div className={`container ${styles.headerInner}`}>
           {/* The visible wordmark is the accessible name (WCAG 2.5.3). A plain Link on purpose:
-              the brand is not a navigation item; the role navigation (remotes branch) uses NavLink. */}
+              the brand is not a navigation item; the navigation by role uses NavLink. */}
           <Link to="/" className={styles.brand}>
             <Wordmark />
           </Link>
+          <nav className={styles.nav} aria-label="Navegación principal">
+            {navItemsFor(session?.user.role).map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/catalogo'}
+                className={navClass}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            {session && (
+              <>
+                <span className={styles.userName}>{session.user.name}</span>
+                <Button variant="ghost" size="sm" onClick={clearSession}>
+                  Salir
+                </Button>
+              </>
+            )}
+          </nav>
         </div>
       </header>
       <main className={`container ${styles.main}`}>
