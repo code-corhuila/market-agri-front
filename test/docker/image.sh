@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Checks the image of the front (R-21): the build context leaves out what must never reach the
+# image, keeps what the build needs, and the image builds. Run from the root of the repository:
+#   bash test/docker/image.sh
+# Needs only bash and docker (BuildKit, the default builder).
+set -uo pipefail
+
+failures=0
+pass() { echo "ok   - $1"; }
+fail() { echo "FAIL - $1"; failures=$((failures + 1)); }
+
+# Leftovers a developer machine always has. Created only if missing, removed only if created here.
+created=()
+plant() {
+  if [ ! -e "$1" ]; then
+    mkdir -p "$(dirname "$1")" && echo "planted by test/docker/image.sh" > "$1" && created+=("$1")
+  fi
+}
+cleanup() {
+  for path in "${created[@]}"; do rm -f "$path"; rmdir -p "$(dirname "$path")" 2> /dev/null; done
+  rm -rf "$context"
+}
+context="$(mktemp -d)"
+trap cleanup EXIT
+plant node_modules/.planted
+plant dist/.planted
+plant .env
+plant debug.log
+
+# Git Bash passes the path to docker.exe untranslated inside "dest=…": cygpath gives C:/… there.
+dest="$(cygpath -m "$context" 2> /dev/null || echo "$context")"
+docker build -q -f test/docker/context.Dockerfile --output "type=local,dest=$dest" . > /dev/null \
+  || { echo "FAIL - the build context could not be exported"; exit 1; }
+
+for excluded in node_modules dist .env .git debug.log; do
+  if [ -e "$context/$excluded" ]; then fail "the context leaves out $excluded"; else pass "the context leaves out $excluded"; fi
+done
+# What deploy/Dockerfile and `tsc -b` read: excluding any of it would break the build.
+for needed in package.json package-lock.json index.html src public test tsconfig.json vite.config.ts vitest.config.ts deploy/nginx.conf; do
+  if [ -e "$context/$needed" ]; then pass "the context keeps $needed"; else fail "the context keeps $needed"; fi
+done
+
+if docker build -q -f deploy/Dockerfile -t market-agri-front:check . > /dev/null; then
+  pass "deploy/Dockerfile builds the image"
+else
+  fail "deploy/Dockerfile builds the image"
+fi
+
+echo
+if [ "$failures" -eq 0 ]; then echo "all checks passed"; else echo "$failures check(s) failed"; fi
+exit $((failures > 0))
