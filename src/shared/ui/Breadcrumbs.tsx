@@ -2,14 +2,23 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styles from './Breadcrumbs.module.css';
 
-export interface Crumb {
+/** An item before the current page: always a link. */
+export interface CrumbLink {
   label: string;
-  /** Route of the item; ignored on the last one, which is the current page. */
-  to?: string;
+  to: string;
 }
 
+/** The last item: the current page, never a link. */
+export interface CurrentCrumb {
+  label: string;
+  to?: never;
+}
+
+/** The type itself says it: every item but the last has a route, the last one has none. */
+export type Crumbs = [...CrumbLink[], CurrentCrumb];
+
 /** First element of every page; replaces "← Volver" (design-system.md). */
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
+export function Breadcrumbs({ items }: { items: Crumbs }) {
   return (
     <nav className={styles.nav} aria-label="Ruta de navegación">
       <ol className={styles.list}>
@@ -17,7 +26,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
           const last = index === items.length - 1;
           return (
             <li key={`${crumb.label}-${index}`} className={styles.item}>
-              {crumb.to && !last ? (
+              {!last && crumb.to ? (
                 <Link className={styles.link} to={crumb.to}>
                   {crumb.label}
                 </Link>

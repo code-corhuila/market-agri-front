@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { Breadcrumbs } from '../../../src/shared/ui/Breadcrumbs';
+import { Breadcrumbs, type Crumbs } from '../../../src/shared/ui/Breadcrumbs';
 import { Button } from '../../../src/shared/ui/Button';
 import { ConfirmDialog } from '../../../src/shared/ui/ConfirmDialog';
 import { PageHeader } from '../../../src/shared/ui/PageHeader';
@@ -21,7 +21,7 @@ describe('PageHeader', () => {
 });
 
 describe('Breadcrumbs', () => {
-  const items = [
+  const items: Crumbs = [
     { label: 'Inicio', to: '/' },
     { label: 'Catálogo', to: '/catalogo' },
     { label: 'Café especial' },
@@ -41,6 +41,17 @@ describe('Breadcrumbs', () => {
     );
     expect(within(nav).queryByRole('link', { name: 'Café especial' })).not.toBeInTheDocument();
     expect(within(nav).getByText('Café especial')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('only accepts a route on every item but the last (checked by npm run typecheck)', () => {
+    // @ts-expect-error a crumb before the current page needs its route
+    const missingRoute: Crumbs = [{ label: 'Inicio' }, { label: 'Café especial' }];
+    // @ts-expect-error the current page is never a link
+    const linkedCurrent: Crumbs = [
+      { label: 'Inicio', to: '/' },
+      { label: 'Café', to: '/c' },
+    ];
+    expect([missingRoute, linkedCurrent]).toHaveLength(2);
   });
 });
 
@@ -80,6 +91,25 @@ describe('ConfirmDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('confirms once even if the button is clicked twice before the parent reacts', () => {
+    const { onConfirm } = renderDialog();
+    const confirm = screen.getByRole('button', { name: 'Eliminar' });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('can confirm again once a confirmation in progress ends (retry after an error)', () => {
+    const onConfirm = vi.fn();
+    const props = { open: true, title: '¿Eliminar?', onCancel: vi.fn(), onConfirm };
+    const { rerender } = render(<ConfirmDialog {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    rerender(<ConfirmDialog {...props} loading />);
+    rerender(<ConfirmDialog {...props} loading={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    expect(onConfirm).toHaveBeenCalledTimes(2);
   });
 
   it('cancels with the cancel button and with Escape', () => {

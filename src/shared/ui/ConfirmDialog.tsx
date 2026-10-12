@@ -33,13 +33,27 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  // Set on the first click, before the parent can re-render with `loading`: a double click never
+  // confirms twice. Released when the dialog opens again or a confirmation in progress ends.
+  const confirmed = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
+    confirmed.current = false;
   }, [open]);
+
+  useEffect(() => {
+    if (!loading) confirmed.current = false;
+  }, [loading]);
+
+  const confirm = () => {
+    if (confirmed.current) return;
+    confirmed.current = true;
+    onConfirm();
+  };
 
   return (
     <dialog
@@ -59,7 +73,7 @@ export function ConfirmDialog({
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           {cancelLabel}
         </Button>
-        <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
+        <Button variant={danger ? 'danger' : 'primary'} onClick={confirm} loading={loading}>
           {confirmLabel}
         </Button>
       </div>
