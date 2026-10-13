@@ -3,6 +3,7 @@ import type { Domain } from '../domains';
 import { authHandlers } from './auth';
 import { catalogHandlers } from './catalog';
 import { chatHandlers, transactionsHandlers, workflowHandlers } from './purchase';
+import { statusHandler } from './status';
 
 /** Handlers of each domain, written from api-contract §4. */
 const HANDLERS: Record<Domain, readonly RequestHandler[]> = {
@@ -13,7 +14,10 @@ const HANDLERS: Record<Domain, readonly RequestHandler[]> = {
   workflow: workflowHandlers,
 };
 
-/** Only the listed domains are answered here; every other request goes on to the gateway. */
+/**
+ * Only the listed domains are answered here, with their /status/<domain> (ADR-017); every other
+ * request goes on to the gateway.
+ */
 export function handlersFor(domains: readonly Domain[]): RequestHandler[] {
-  return domains.flatMap((domain) => HANDLERS[domain]);
+  return domains.flatMap((domain) => [...HANDLERS[domain], statusHandler(domain)]);
 }
