@@ -7,4 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_AUTH_PORTAL_URL?: string;
   readonly VITE_CATALOG_PORTAL_URL?: string;
   readonly VITE_TRANSACTIONS_PORTAL_URL?: string;
+  /** Domains answered by the simulated mode ("auth,catalog"); empty = all real (HU-PLAT-009). */
+  readonly VITE_API_MOCKS?: string;
 }

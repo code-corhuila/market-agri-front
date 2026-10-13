@@ -4,6 +4,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
+      # Level 1: the domains whose service is not running yet answer with simulated data (ADR-021).
+      args:
+        VITE_API_MOCKS: ${VITE_API_MOCKS:-}
     expose: ['80']
     restart: unless-stopped
     networks: [platform]
