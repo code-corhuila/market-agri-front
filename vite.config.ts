@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
+import { sharedSingletons } from './config/federation';
 
 /** Where each portal publishes its remoteEntry.js; fixed at build time like every VITE_ value. */
 const PORTAL_ENTRIES = {
@@ -8,6 +10,10 @@ const PORTAL_ENTRIES = {
   catalog: ['VITE_CATALOG_PORTAL_URL', 'http://localhost:5175/remoteEntry.js'],
   transactions: ['VITE_TRANSACTIONS_PORTAL_URL', 'http://localhost:5176/remoteEntry.js'],
 } as const;
+
+const { dependencies } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { dependencies: Record<string, string> };
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
@@ -33,13 +39,9 @@ export default defineConfig(({ mode }) => {
           './ui': './src/shared/ui/index.ts',
         },
         remotes,
-        // One copy of React and of the router for the container and every portal: two copies
-        // break hooks and the portals' nested routes.
-        shared: {
-          react: { singleton: true },
-          'react-dom': { singleton: true },
-          'react-router-dom': { singleton: true },
-        },
+        // One copy of React and of the router for the container and every portal (two copies
+        // break hooks and the portals' nested routes), in the version range of package.json.
+        shared: sharedSingletons(dependencies),
         // A portal is downloaded when its route opens; with the default 'version-first' every
         // remote is fetched at start-up and one portal down blanks the whole application.
         shareStrategy: 'loaded-first',

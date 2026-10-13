@@ -1,8 +1,9 @@
 name: CI
 
-# Required status check `ci` on develop, qa and main (git-conventions §6). Unit and component
-# tests need no infrastructure, so they run on every pull request
-# (11-quality/testing-strategy.md, "test levels per branch").
+# Required status checks (git-conventions §6, 11-quality/testing-strategy.md "test levels per
+# branch"): `ci` on every pull request (unit and component tests need no infrastructure) and
+# `integration` on pull requests to qa (the promotion branches qa-<SUBTASK-ID>, ADR-027): the
+# built container with real portals over Module Federation, in Chromium.
 
 on:
   pull_request:
@@ -34,3 +35,24 @@ jobs:
       - run: npm run build
       - name: Docker image (build context and build, R-21)
         run: bash test/docker/image.sh
+
+  integration:
+    if: github.base_ref == 'qa' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:integration
+      - name: Report of the integration tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
