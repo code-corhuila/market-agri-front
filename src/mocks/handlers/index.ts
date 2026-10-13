@@ -2,14 +2,15 @@ import type { RequestHandler } from 'msw';
 import type { Domain } from '../domains';
 import { authHandlers } from './auth';
 import { catalogHandlers } from './catalog';
+import { chatHandlers, transactionsHandlers, workflowHandlers } from './purchase';
 
-/** Handlers of each domain, written from api-contract §4. Chat, transactions and workflow arrive with G1.10. */
+/** Handlers of each domain, written from api-contract §4. */
 const HANDLERS: Record<Domain, readonly RequestHandler[]> = {
   auth: authHandlers,
   catalog: catalogHandlers,
-  chat: [],
-  transactions: [],
-  workflow: [],
+  chat: chatHandlers,
+  transactions: transactionsHandlers,
+  workflow: workflowHandlers,
 };
 
 /** Only the listed domains are answered here; every other request goes on to the gateway. */
