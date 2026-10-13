@@ -6,3 +6,4 @@ package-lock.json
 playwright-report
 e2e-report
 test-results
+public/mockServiceWorker.js
