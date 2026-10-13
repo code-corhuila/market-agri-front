@@ -37,7 +37,8 @@ handlers. Seed users of the simulated login (development only):
 | BUYER    | `comprador@market-agri.test` | `Comprador123` |
 | ADMIN    | `admin@market-agri.test`     | `Admin123`     |
 
-The simulated token is unsigned (`kid: simulated`): only this container accepts it.
+The simulated token is unsigned (`kid: simulated`): only this container accepts it. The simulated
+catalog starts from five seed products (`src/mocks/db.ts`); photos (E-16, E-17) are not simulated.
 
 ## Tests
 
