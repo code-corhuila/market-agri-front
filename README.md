@@ -39,6 +39,8 @@ handlers. Seed users of the simulated login (development only):
 
 The simulated token is unsigned (`kid: simulated`): only this container accepts it. The simulated
 catalog starts from five seed products (`src/mocks/db.ts`); photos (E-16, E-17) are not simulated.
+The simulated purchase (chat, workflow E-40, transactions) has no Stripe: `checkoutUrl` is the page
+of the transaction, and the payment is confirmed 5 seconds after the checkout.
 
 ## Tests
 
