@@ -5,3 +5,7 @@ dist/
 *.log
 *.pem
 tsconfig.tsbuildinfo
+.integration
+playwright-report
+e2e-report
+test-results
