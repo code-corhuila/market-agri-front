@@ -12,7 +12,9 @@ interface RequireAuthProps {
 /**
  * Guards a route (Annex H): without a session it goes to the login portal and comes back to the
  * route asked for (`?next=`). Exposed as `shell/RequireAuth`, so a portal guards its pages
- * (the ADMIN views) with the container's session, never with its own.
+ * (the ADMIN views) with the container's session, never with its own. It only guides the
+ * navigation: the role lives in the browser, so the real authorization is the server's (each
+ * service validates the JWT and its role, ADR-020, and answers 403).
  */
 export function RequireAuth({ children, roles }: RequireAuthProps) {
   const session = useSession();

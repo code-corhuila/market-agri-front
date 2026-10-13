@@ -44,6 +44,25 @@ describe('RemotePage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Catálogo no está disponible');
   });
 
+  it('starts clean when the route moves from a failed portal to another one', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failed: Portal = { ...portal(() => Promise.reject(new Error('caído'))), name: 'auth' };
+    const { rerender } = render(
+      <MemoryRouter>
+        <RemotePage portal={{ ...failed, title: 'Inicio de sesión' }} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Inicio de sesión no está disponible',
+    );
+    rerender(
+      <MemoryRouter>
+        <RemotePage portal={portal(() => Promise.resolve({ default: Remote }))} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Productos' })).toBeInTheDocument();
+  });
+
   it('retries the download when asked', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const load = vi

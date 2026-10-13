@@ -138,6 +138,18 @@ describe('apiClient', () => {
     expect(getSession()).toBeNull();
   });
 
+  // Review of #14 (finding 4): authorization is the server's (ADR-020). A 403 reaches the portal
+  // as FORBIDDEN with its message and keeps the session: the person is signed in, only not allowed.
+  it('keeps the session on a 403 and reports FORBIDDEN', async () => {
+    signIn();
+    fetchMock.mockResolvedValue(new Response(null, { status: 403 }));
+    const error = await failureOf(apiClient.get('/api/v1/transactions/admin/transactions'));
+    expect(error.status).toBe(403);
+    expect(error.error).toBe('FORBIDDEN');
+    expect(error.message).toBe('No tiene permisos para realizar esta acción.');
+    expect(getSession()).not.toBeNull();
+  });
+
   it('fails with TIMEOUT (status 0) after 10 s without an answer', async () => {
     vi.useFakeTimers();
     fetchMock.mockImplementation(
