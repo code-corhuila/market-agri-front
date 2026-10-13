@@ -94,6 +94,12 @@ describe('simulated catalog: browse (E-10, E-11)', () => {
     expect(both.meta.total).toBeLessThan(byPlace.meta.total);
   });
 
+  // Review of #17, point 1: only the marks of the accents are folded, never other characters.
+  it('folds accents only: a caret or a grave accent in the filter is not ignored', async () => {
+    expect((await list('?municipality=garz%5Eon')).meta.total).toBe(0);
+    expect((await list('?municipality=garz%60on')).meta.total).toBe(0);
+  });
+
   it('paginates with meta and answers an empty page past the last', async () => {
     const page = await list('?page=2&limit=2');
     expect(page.data).toHaveLength(2);

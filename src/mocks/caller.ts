@@ -1,4 +1,5 @@
 import type { Role } from '../core/auth/session';
+import { errorBody } from './errorBody';
 
 export interface Caller {
   id: string;
@@ -26,4 +27,23 @@ export function callerOf(request: Request): Caller | null {
   } catch {
     return null;
   }
+}
+
+/** §2.1 before any rule of the card: 401 without a session, 403 for a role the card excludes. */
+export function requireRole(
+  request: Request,
+  roles: Role[],
+): { caller: Caller } | { refusal: Response } {
+  const caller = callerOf(request);
+  if (!caller) {
+    return {
+      refusal: errorBody(request, 401, 'UNAUTHORIZED', 'Debe iniciar sesión para continuar.'),
+    };
+  }
+  if (!roles.includes(caller.role)) {
+    return {
+      refusal: errorBody(request, 403, 'FORBIDDEN', 'No tiene permisos para realizar esta acción.'),
+    };
+  }
+  return { caller };
 }
