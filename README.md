@@ -24,6 +24,21 @@ test/docker/            the image: build context after .dockerignore, and the bu
 deploy/                 Dockerfile (npm ci), nginx.conf, compose.yml (included by infra)
 ```
 
+## Simulated mode (HU-PLAT-009)
+
+`VITE_API_MOCKS` lists the domains answered in the browser by Mock Service Worker
+(`src/mocks/`, handlers written from `market-agri-docs/07-api/api-contract.md` §4); the others
+reach the gateway. A notice on every page names the simulated domains. The tests use the same
+handlers. Seed users of the simulated login (development only):
+
+| Role     | Email                        | Password       |
+| -------- | ---------------------------- | -------------- |
+| PRODUCER | `productor@market-agri.test` | `Productor123` |
+| BUYER    | `comprador@market-agri.test` | `Comprador123` |
+| ADMIN    | `admin@market-agri.test`     | `Admin123`     |
+
+The simulated token is unsigned (`kid: simulated`): only this container accepts it.
+
 ## Tests
 
 Levels and the branch where each one is a required check:
