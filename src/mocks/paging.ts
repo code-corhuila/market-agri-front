@@ -4,19 +4,19 @@ type Detail = { field: string; message: string };
 export type PageRequest = { page: number; limit: number };
 
 /**
- * D-C24: `page` (≥ 1) and `limit` (1–100) and the filters the card allows, each enumerated one
- * with its values; anything else is a 400 with one detail per field.
+ * D-C24: `page` (≥ 1) and `limit` (1–100) and the filters the card allows: the enumerated ones
+ * with their values (`enums`) and the free ones (`free`), each declared once; anything else is a
+ * 400 with one detail per field.
  */
 export function readPage(
   url: URL,
-  filters: string[],
   enums: Record<string, readonly string[]>,
+  free: string[] = [],
 ): { details: Detail[] } | PageRequest {
   const details: Detail[] = [];
-  for (const key of url.searchParams.keys()) {
-    if (![...filters, 'page', 'limit'].includes(key)) {
-      details.push({ field: key, message: 'Filtro desconocido.' });
-    }
+  const allowed = [...Object.keys(enums), ...free, 'page', 'limit'];
+  for (const key of new Set(url.searchParams.keys())) {
+    if (!allowed.includes(key)) details.push({ field: key, message: 'Filtro desconocido.' });
   }
   const number = (key: string, fallback: number, max: number) => {
     const raw = url.searchParams.get(key);

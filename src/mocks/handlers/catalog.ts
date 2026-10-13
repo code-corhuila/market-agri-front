@@ -51,7 +51,7 @@ const fold = (text: string) =>
   text
     .trim()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\p{M}/gu, '') // the marks NFD splits from the letters (accents), nothing else
     .toLowerCase();
 
 const view = ({ deletedAt: _deleted, ...product }: MockProduct) => product;
@@ -126,7 +126,7 @@ export const catalogHandlers = [
     const guard = requireRole(request, ['PRODUCER']);
     if ('refusal' in guard) return guard.refusal;
     const url = new URL(request.url);
-    const page = readPage(url, ['status'], { status: STATUSES });
+    const page = readPage(url, { status: STATUSES });
     if ('details' in page)
       return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, page.details);
     const status = url.searchParams.get('status');
@@ -138,10 +138,7 @@ export const catalogHandlers = [
 
   http.get('*/api/v1/catalog/products', ({ request }) => {
     const url = new URL(request.url);
-    const page = readPage(url, ['category', 'municipality', 'status'], {
-      category: codes(CATEGORIES),
-      status: STATUSES,
-    });
+    const page = readPage(url, { category: codes(CATEGORIES), status: STATUSES }, ['municipality']);
     if ('details' in page)
       return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, page.details);
     const category = url.searchParams.get('category');

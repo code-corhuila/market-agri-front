@@ -8,23 +8,27 @@ const url = (query: string) => new URL(`http://localhost/api/v1/x${query}`);
 
 describe('readPage (D-C24)', () => {
   it('takes the defaults and the values of the request', () => {
-    expect(readPage(url(''), [], {})).toEqual({ page: 1, limit: 20 });
-    expect(readPage(url('?page=3&limit=100&status=A'), ['status'], { status: ['A'] })).toEqual({
+    expect(readPage(url(''), {})).toEqual({ page: 1, limit: 20 });
+    expect(readPage(url('?page=3&limit=100&status=A&q=x'), { status: ['A'] }, ['q'])).toEqual({
       page: 3,
       limit: 100,
     });
   });
 
   it('names every field out of range, unknown or with a value not allowed', () => {
-    const result = readPage(url('?page=0&limit=101&color=x&status=Z'), ['status'], {
-      status: ['A'],
-    });
+    const result = readPage(url('?page=0&limit=101&color=x&status=Z'), { status: ['A'] });
     expect('details' in result && result.details.map((detail) => detail.field)).toEqual([
       'color',
       'page',
       'limit',
       'status',
     ]);
+  });
+
+  // Review of #17, point 4: a repeated unknown key is named once.
+  it('names a repeated unknown filter once', () => {
+    const result = readPage(url('?x=1&x=2'), {});
+    expect('details' in result && result.details.map((detail) => detail.field)).toEqual(['x']);
   });
 });
 
