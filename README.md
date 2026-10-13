@@ -58,8 +58,9 @@ npm run dev               # http://localhost:5173
 bash test/docker/image.sh # the image builds and never carries node_modules, dist or .env
 ```
 
-The portals run on their own dev servers (5174 auth, 5175 catalog, 5176 transactions; see
-`.env.example`). A portal that is not running only shows its notice: the container still works.
+The portals run on their own dev servers (5174 auth, 5175 catalog, 5176 transactions, each under
+`/portals/<name>/`; see `.env.example`). On the platform the gateway serves them in this origin and
+the image is built with their paths (`deploy/compose.yml`, ADR-017). A portal that is not running only shows its notice: the container still works.
 
 ## Branches
 
