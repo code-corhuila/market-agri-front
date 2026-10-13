@@ -1,3 +1,23 @@
+/**
+ * The portals the container mounts and where it finds each remoteEntry.js, fixed at build time. On
+ * the platform the gateway serves them under /portals/<name>/ in this origin (ADR-017) and the
+ * image is built with those paths (deploy/compose.yml); `dev` is each portal's own server.
+ */
+export const PORTALS = {
+  auth: {
+    variable: 'VITE_AUTH_PORTAL_URL',
+    dev: 'http://localhost:5174/portals/auth/remoteEntry.js',
+  },
+  catalog: {
+    variable: 'VITE_CATALOG_PORTAL_URL',
+    dev: 'http://localhost:5175/portals/catalog/remoteEntry.js',
+  },
+  transactions: {
+    variable: 'VITE_TRANSACTIONS_PORTAL_URL',
+    dev: 'http://localhost:5176/portals/transactions/remoteEntry.js',
+  },
+} as const;
+
 /** Libraries the container and every portal share as one copy (ADR-021, Annex H). */
 export const SINGLETONS = ['react', 'react-dom', 'react-router-dom'] as const;
 
