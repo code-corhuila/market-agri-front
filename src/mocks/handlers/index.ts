@@ -1,11 +1,12 @@
 import type { RequestHandler } from 'msw';
 import type { Domain } from '../domains';
 import { authHandlers } from './auth';
+import { catalogHandlers } from './catalog';
 
-/** Handlers of each domain, written from api-contract §4. The others arrive with G1.9 and G1.10. */
+/** Handlers of each domain, written from api-contract §4. Chat, transactions and workflow arrive with G1.10. */
 const HANDLERS: Record<Domain, readonly RequestHandler[]> = {
   auth: authHandlers,
-  catalog: [],
+  catalog: catalogHandlers,
   chat: [],
   transactions: [],
   workflow: [],
