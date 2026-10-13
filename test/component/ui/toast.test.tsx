@@ -89,4 +89,34 @@ describe('toast kinds and limit', () => {
     expect(screen.queryByText('Aviso 1')).not.toBeInTheDocument();
     expect(screen.getAllByText(/^Aviso [234]$/)).toHaveLength(3);
   });
+
+  it('keeps an error when newer information notices exceed the limit', () => {
+    render(
+      <ToastProvider>
+        <KindTrigger />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Error' }));
+    for (let i = 0; i < 3; i++)
+      fireEvent.click(screen.getByRole('button', { name: 'Información' }));
+    expect(screen.getByText('No se pudo guardar.')).toBeInTheDocument();
+    expect(screen.getAllByText('Datos simulados.')).toHaveLength(2);
+  });
+
+  it('leaves no pending timer for a notice pushed out by the limit', () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <ToastProvider>
+          <KindTrigger />
+        </ToastProvider>,
+      );
+      for (let i = 0; i < 4; i++)
+        fireEvent.click(screen.getByRole('button', { name: 'Información' }));
+      expect(screen.getAllByText('Datos simulados.')).toHaveLength(3);
+      expect(vi.getTimerCount()).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
