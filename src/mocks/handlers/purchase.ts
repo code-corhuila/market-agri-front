@@ -235,7 +235,7 @@ export const transactionsHandlers = [
     if ('refusal' in guard) return guard.refusal;
     const { id, role } = guard.caller;
     const url = new URL(request.url);
-    const page = readPage(url, ['status'], { status: TRANSACTION_STATUSES });
+    const page = readPage(url, { status: TRANSACTION_STATUSES });
     if ('details' in page)
       return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, page.details);
     const status = url.searchParams.get('status');
