@@ -1,7 +1,8 @@
 import { http, HttpResponse } from 'msw';
-import { callerOf, type Caller } from '../caller';
+import { requireRole } from '../caller';
 import { mockDb, newProduct, type MockProduct } from '../db';
 import { errorBody } from '../errorBody';
+import { pageOf, readPage } from '../paging';
 
 // api-contract §1.2 and E-19/E-20: codes and labels, in the fixed order of the contract.
 const CATEGORIES = [
@@ -33,7 +34,6 @@ const lookup = (pairs: readonly (readonly [string, string])[]) =>
 const codes = (pairs: readonly (readonly [string, string])[]) => pairs.map(([code]) => code);
 
 const STATUSES = ['ACTIVE', 'OUT_OF_STOCK'];
-const MAX_LIMIT = 100;
 const MAX_QUANTITY = 9_999_999_999.99;
 const MAX_PRICE = 999_999_999_999;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -42,56 +42,21 @@ const NOT_FOUND = 'El producto no existe.';
 const NOT_OWNER = 'El producto pertenece a otro productor.';
 
 type Detail = { field: string; message: string };
-type Invalid = { details: Detail[] };
 
 /** D-C7: a quantity has at most 2 decimals (12.5 kg yes, 1.125 no). */
 const hasTwoDecimalsAtMost = (n: number) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6;
 
 /** `Garzón` = ` garzon ` (E-10): trimmed, without case nor accents. */
-const fold = (text: string) => text.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const fold = (text: string) =>
+  text
+    .trim()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '') // the marks NFD splits from the letters (accents), nothing else
+    .toLowerCase();
 
 const view = ({ deletedAt: _deleted, ...product }: MockProduct) => product;
 const visible = () => mockDb.products.filter((product) => product.deletedAt === null);
 const statusFor = (quantity: number) => (quantity > 0 ? 'ACTIVE' : 'OUT_OF_STOCK');
-
-/** D-C24: page/limit and the allowed filters; anything else is 400. */
-function readPage(url: URL, filters: string[]): Invalid | { page: number; limit: number } {
-  const details: Detail[] = [];
-  for (const key of url.searchParams.keys()) {
-    if (![...filters, 'page', 'limit'].includes(key))
-      details.push({ field: key, message: 'Filtro desconocido.' });
-  }
-  const number = (key: string, fallback: number, max: number) => {
-    const raw = url.searchParams.get(key);
-    const value = raw === null ? fallback : Number(raw);
-    if (!Number.isInteger(value) || value < 1 || value > max) {
-      details.push({ field: key, message: 'Fuera de rango.' });
-    }
-    return value;
-  };
-  const page = number('page', 1, Number.MAX_SAFE_INTEGER);
-  const limit = number('limit', 20, MAX_LIMIT);
-  const enumFilter = (key: string, allowed: readonly string[]) => {
-    const value = url.searchParams.get(key);
-    if (value !== null && !allowed.includes(value))
-      details.push({ field: key, message: 'Valor no permitido.' });
-  };
-  enumFilter('category', codes(CATEGORIES));
-  enumFilter('status', STATUSES);
-  return details.length > 0 ? { details } : { page, limit };
-}
-
-/** Order of E-10/E-12: createdAt descending, then id ascending. */
-function pageOf(products: MockProduct[], page: number, limit: number) {
-  const sorted = [...products].sort(
-    (a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id),
-  );
-  const data = sorted.slice((page - 1) * limit, page * limit).map(view);
-  return {
-    data,
-    meta: { page, limit, total: sorted.length, totalPages: Math.ceil(sorted.length / limit) },
-  };
-}
 
 /** ProductWrite (§4.2): shape is 400, the domain rules are 422 (D-C22). */
 function readWrite(body: Record<string, unknown>) {
@@ -127,23 +92,6 @@ function readWrite(body: Record<string, unknown>) {
   return { details, product: { name, category, unit, quantity, price, municipality } };
 }
 
-type Guard = { caller: Caller } | { refusal: Response };
-
-/** E-12/E-13/E-14/E-18 are for PRODUCER: 401 without a session, 403 for another role (§2.1). */
-function producer(request: Request): Guard {
-  const caller = callerOf(request);
-  if (!caller)
-    return {
-      refusal: errorBody(request, 401, 'UNAUTHORIZED', 'Debe iniciar sesión para continuar.'),
-    };
-  if (caller.role !== 'PRODUCER') {
-    return {
-      refusal: errorBody(request, 403, 'FORBIDDEN', 'No tiene permisos para realizar esta acción.'),
-    };
-  }
-  return { caller };
-}
-
 /** A path {id}: 400 when it is not a UUID (D-C23), 404 when missing or deleted (D-C5). */
 function find(request: Request, id: string): { product: MockProduct } | { refusal: Response } {
   if (!UUID.test(id))
@@ -175,22 +123,22 @@ export const catalogHandlers = [
   http.get('*/api/v1/catalog/units', () => HttpResponse.json(lookup(UNITS))),
 
   http.get('*/api/v1/catalog/products/mine', ({ request }) => {
-    const guard = producer(request);
+    const guard = requireRole(request, ['PRODUCER']);
     if ('refusal' in guard) return guard.refusal;
     const url = new URL(request.url);
-    const page = readPage(url, ['status']);
+    const page = readPage(url, { status: STATUSES });
     if ('details' in page)
       return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, page.details);
     const status = url.searchParams.get('status');
     const mine = visible().filter(
       (p) => p.producerId === guard.caller.id && (!status || p.status === status),
     );
-    return HttpResponse.json(pageOf(mine, page.page, page.limit));
+    return HttpResponse.json(pageOf(mine, page, view));
   }),
 
   http.get('*/api/v1/catalog/products', ({ request }) => {
     const url = new URL(request.url);
-    const page = readPage(url, ['category', 'municipality', 'status']);
+    const page = readPage(url, { category: codes(CATEGORIES), status: STATUSES }, ['municipality']);
     if ('details' in page)
       return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, page.details);
     const category = url.searchParams.get('category');
@@ -202,7 +150,7 @@ export const catalogHandlers = [
         (municipality === null || fold(p.municipality) === fold(municipality)) &&
         (!status || p.status === status),
     );
-    return HttpResponse.json(pageOf(matches, page.page, page.limit));
+    return HttpResponse.json(pageOf(matches, page, view));
   }),
 
   http.get('*/api/v1/catalog/products/:id', ({ request, params }) => {
@@ -211,7 +159,7 @@ export const catalogHandlers = [
   }),
 
   http.post('*/api/v1/catalog/products', async ({ request }) => {
-    const guard = producer(request);
+    const guard = requireRole(request, ['PRODUCER']);
     if ('refusal' in guard) return guard.refusal;
     const key = request.headers.get('Idempotency-Key') ?? '';
     const { details, product } = readWrite(await bodyOf(request));
@@ -244,7 +192,7 @@ export const catalogHandlers = [
   }),
 
   http.put('*/api/v1/catalog/products/:id', async ({ request, params }) => {
-    const guard = producer(request);
+    const guard = requireRole(request, ['PRODUCER']);
     if ('refusal' in guard) return guard.refusal;
     const { details, product } = readWrite(await bodyOf(request));
     if (details.length > 0) return errorBody(request, 400, 'VALIDATION_ERROR', INVALID, details);
@@ -263,7 +211,7 @@ export const catalogHandlers = [
   }),
 
   http.delete('*/api/v1/catalog/products/:id', ({ request, params }) => {
-    const guard = producer(request);
+    const guard = requireRole(request, ['PRODUCER']);
     if ('refusal' in guard) return guard.refusal;
     const found = find(request, String(params.id));
     if ('refusal' in found) return found.refusal;
