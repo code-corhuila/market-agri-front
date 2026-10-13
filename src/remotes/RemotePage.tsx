@@ -10,7 +10,9 @@ export function RemotePage({ portal }: { portal: Portal }) {
   const Remote = useMemo(() => lazy(portal.load), [portal, attempt]);
 
   return (
-    <RemoteBoundary title={portal.title} onRetry={() => setAttempt((n) => n + 1)}>
+    // Keyed by portal: every route renders the boundary in the same place, so without the key a
+    // failed portal would leave the next one, opened from the header, marked as failed too.
+    <RemoteBoundary key={portal.name} title={portal.title} onRetry={() => setAttempt((n) => n + 1)}>
       <Suspense fallback={<LoadingBlock label={`Cargando ${portal.title}…`} />}>
         <Remote />
       </Suspense>
