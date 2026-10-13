@@ -2,10 +2,12 @@
 export const SINGLETONS = ['react', 'react-dom', 'react-router-dom'] as const;
 
 /**
- * Module Federation `shared` for the singletons. One copy is not enough: each one also requires
- * the range of package.json, strictly, so a portal built for another version fails to start (and
- * its RemoteBoundary contains it) instead of running against a React or router it does not know.
- * Every portal declares the same, from its own package.json.
+ * Module Federation `shared` for the singletons: one copy, and the range of package.json required
+ * strictly. Every portal declares the same, from its own package.json.
+ * What strictVersion does today (@module-federation/vite 1.23.1, 'loaded-first'): a mismatch is
+ * reported in the console, naming the portal and both versions, and the portal still runs on the
+ * container's copy; it is not blocked (pinned by test/integration/portals.spec.ts). Blocking it
+ * would take a federation runtime plugin, which is not part of this delivery.
  */
 export function sharedSingletons(dependencies: Record<string, string | undefined>) {
   return Object.fromEntries(
