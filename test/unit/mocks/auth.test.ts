@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { setupServer } from 'msw/node';
 import { getSession, setSession, type Session } from '../../../src/core/auth/session';
 import { apiClient } from '../../../src/core/http/apiClient';
@@ -103,10 +105,28 @@ describe('simulated auth: login (E-02)', () => {
     expect(error.traceId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  // A gateway of its own on a port the system chooses (port 0): the case never depends on what
+  // listens on the machine (R-28, 8080 taken on a developer's PC answered INTERNAL_ERROR).
   it('leaves a domain that is not simulated to the gateway', async () => {
+    const reached: string[] = [];
+    const gateway: Server = createServer((request, response) => {
+      reached.push(`${request.method} ${request.url}`);
+      response.writeHead(503, { 'Content-Type': 'application/json' });
+      response.end(
+        JSON.stringify({ error: 'SERVICE_UNAVAILABLE', message: 'gateway', details: [] }),
+      );
+    });
+    await new Promise<void>((ready) => gateway.listen(0, '127.0.0.1', ready));
+    const { port } = gateway.address() as AddressInfo;
+    vi.stubEnv('VITE_GATEWAY_URL', `http://127.0.0.1:${port}`);
     server.resetHandlers();
     server.use(...handlersFor(['catalog']));
-    const error = await failureOf(login(producer.email, producer.password));
-    expect(error.error).toBe('NETWORK_ERROR'); // nothing listens on the gateway in this test
+    try {
+      const error = await failureOf(login(producer.email, producer.password));
+      expect(reached).toEqual(['POST /api/v1/auth/login']);
+      expect(error.error).toBe('SERVICE_UNAVAILABLE');
+    } finally {
+      await new Promise((closed) => gateway.close(closed));
+    }
   });
 });
