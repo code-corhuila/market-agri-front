@@ -103,6 +103,41 @@ export const SEED_PRODUCTS: readonly MockProduct[] = ROWS.map(
     ),
 );
 
+/** `ConversationView` of api-contract §4.3. */
+export interface MockConversation {
+  id: string;
+  productId: string;
+  productName: string;
+  buyerId: string;
+  buyerName: string;
+  producerId: string;
+  producerName: string;
+  agreedPurchaseMethod: 'PLATFORM' | 'OFF_PLATFORM' | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+}
+
+/** `TransactionView` of api-contract §4.4 without its ledger, which is derived on reading. */
+export interface MockTransaction {
+  id: string;
+  conversationId: string;
+  productId: string;
+  productName: string;
+  buyerId: string;
+  buyerName: string;
+  producerId: string;
+  producerName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  amount: number;
+  currency: 'COP';
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED';
+  createdAt: string;
+  confirmedAt: string | null;
+  failedAt: string | null;
+}
+
 /** State of the simulated domains while the page lives. */
 export const mockDb = {
   /** Consecutive failed logins by email. */
@@ -110,6 +145,10 @@ export const mockDb = {
   products: SEED_PRODUCTS.map((product) => ({ ...product })),
   /** Idempotency-Key of E-13 (by producer) → id of the product it created (D-C35). */
   productKeys: new Map<string, string>(),
+  conversations: [] as MockConversation[],
+  transactions: [] as MockTransaction[],
+  /** Idempotency-Key of E-40 (by buyer) → id of the transaction it created. */
+  checkoutKeys: new Map<string, string>(),
 };
 
 /** Back to the seed: the tests start every case from it. */
@@ -117,4 +156,7 @@ export function resetMockDb(): void {
   mockDb.failedLogins.clear();
   mockDb.products = SEED_PRODUCTS.map((product) => ({ ...product }));
   mockDb.productKeys.clear();
+  mockDb.conversations = [];
+  mockDb.transactions = [];
+  mockDb.checkoutKeys.clear();
 }
