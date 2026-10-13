@@ -45,4 +45,12 @@ describe('the container and its portals behind the gateway (ADR-017)', () => {
     expect(nginx).not.toContain('Access-Control-Allow-Origin');
     expect(nginx).toMatch(/remoteEntry\\\.js\|mf-manifest\\\.json[\s\S]*Cache-Control "no-store"/);
   });
+
+  // Review of #20: a chunk that is not there must be a 404 (the browser names the missing file),
+  // not the application's page served as a script ("Unexpected token '<'").
+  it('answers a missing file under /assets/ with 404, not with the page', () => {
+    expect(read('deploy/nginx.conf')).toMatch(
+      /location \/assets\/ \{\s*try_files \$uri =404;\s*\}/,
+    );
+  });
 });

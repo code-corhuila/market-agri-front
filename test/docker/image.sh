@@ -60,6 +60,21 @@ else
   fail "deploy/Dockerfile builds the image"
 fi
 
+# Review of #20: a missing chunk is a 404, not the page (polled: nginx may take a moment to listen).
+docker run -d --rm --name front-check market-agri-front:check > /dev/null
+missing=""
+for _ in $(seq 1 15); do
+  missing="$(docker exec front-check wget -qSO /dev/null http://127.0.0.1/assets/no-existe.js 2>&1)"
+  grep -q 'HTTP/' <<< "$missing" && break
+  sleep 1
+done
+docker stop front-check > /dev/null
+if grep -q 'HTTP/1.1 404' <<< "$missing"; then
+  pass "a missing file under /assets/ answers 404, not the page"
+else
+  fail "a missing file under /assets/ answers 404, not the page"
+fi
+
 echo
 if [ "$failures" -eq 0 ]; then echo "all checks passed"; else echo "$failures check(s) failed"; fi
 exit $((failures > 0))
