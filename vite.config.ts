@@ -2,15 +2,8 @@ import { readFileSync } from 'node:fs';
 import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
-import { sharedSingletons } from './config/federation';
+import { PORTALS, sharedSingletons } from './config/federation';
 import { parseMockedDomains } from './src/mocks/domains';
-
-/** Where each portal publishes its remoteEntry.js; fixed at build time like every VITE_ value. */
-const PORTAL_ENTRIES = {
-  auth: ['VITE_AUTH_PORTAL_URL', 'http://localhost:5174/remoteEntry.js'],
-  catalog: ['VITE_CATALOG_PORTAL_URL', 'http://localhost:5175/remoteEntry.js'],
-  transactions: ['VITE_TRANSACTIONS_PORTAL_URL', 'http://localhost:5176/remoteEntry.js'],
-} as const;
 
 const { dependencies } = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
@@ -21,9 +14,9 @@ export default defineConfig(({ mode }) => {
   // A misspelt simulated domain fails the build (and the CI image), not the page in the browser.
   parseMockedDomains(env.VITE_API_MOCKS);
   const remotes = Object.fromEntries(
-    Object.entries(PORTAL_ENTRIES).map(([name, [variable, fallback]]) => [
+    Object.entries(PORTALS).map(([name, { variable, dev }]) => [
       name,
-      { type: 'module', name, entry: env[variable] || fallback },
+      { type: 'module', name, entry: env[variable] || dev },
     ]),
   );
 
