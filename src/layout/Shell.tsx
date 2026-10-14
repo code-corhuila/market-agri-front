@@ -1,10 +1,12 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { clearSession } from '../core/auth/session';
 import { useSession } from '../core/auth/useSession';
+import { MOCKED_DOMAINS } from '../mocks/config';
 import { navItemsFor } from '../remotes/registry';
 import { Button } from '../shared/ui/Button';
 import { cx } from '../shared/ui/cx';
 import styles from './Shell.module.css';
+import { SimulatedNotice } from './SimulatedNotice';
 import { Wordmark } from './Wordmark';
 
 const PROJECT_NAME =
@@ -52,6 +54,7 @@ export function Shell() {
         </div>
       </header>
       <main className={`container ${styles.main}`}>
+        <SimulatedNotice domains={MOCKED_DOMAINS} />
         <Outlet />
       </main>
       <footer className={styles.footer}>
