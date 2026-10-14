@@ -7,6 +7,10 @@ services:
       # Level 1: the domains whose service is not running yet answer with simulated data (ADR-021).
       args:
         VITE_API_MOCKS: ${VITE_API_MOCKS:-}
+        # The portals, served by the gateway in this same origin (ADR-017).
+        VITE_AUTH_PORTAL_URL: /portals/auth/remoteEntry.js
+        VITE_CATALOG_PORTAL_URL: /portals/catalog/remoteEntry.js
+        VITE_TRANSACTIONS_PORTAL_URL: /portals/transactions/remoteEntry.js
     expose: ['80']
     restart: unless-stopped
     networks: [platform]
