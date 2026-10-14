@@ -1,0 +1,97 @@
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { cx } from '../cx';
+import { admit } from './admit';
+import { ToastContext, type ToastApi, type ToastKind } from './useToast';
+import styles from './toast.module.css';
+
+interface ToastItem {
+  id: number;
+  kind: ToastKind;
+  message: string;
+}
+
+/** How long a toast stays (design-system.md: about 4 s). */
+const DISMISS_MS = 4000;
+/** Notices shown at once, so a burst never fills the screen (`admit` decides which one leaves). */
+const MAX_VISIBLE = 3;
+const ICON = { success: CheckCircle2, error: AlertCircle, info: Info };
+
+/** Short notices in the top right corner, read politely (`aria-live`) by screen readers. */
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const nextId = useRef(0);
+  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
+  const remove = useCallback((id: number) => {
+    setToasts((list) => list.filter((toast) => toast.id !== id));
+  }, []);
+
+  const push = useCallback((kind: ToastKind, message: string) => {
+    const id = ++nextId.current;
+    setToasts((list) => admit(list, { id, kind, message }, MAX_VISIBLE));
+  }, []);
+
+  // The only place that handles timers: every visible notice has one, and a notice that left the
+  // list (closed, expired or pushed out by the limit) has none.
+  useEffect(() => {
+    const pending = timers.current;
+    for (const toast of toasts) {
+      if (!pending.has(toast.id)) {
+        pending.set(
+          toast.id,
+          setTimeout(() => remove(toast.id), DISMISS_MS),
+        );
+      }
+    }
+    for (const [id, timer] of pending) {
+      if (!toasts.some((toast) => toast.id === id)) {
+        clearTimeout(timer);
+        pending.delete(id);
+      }
+    }
+  }, [toasts, remove]);
+
+  // No timer outlives the provider (it would update an unmounted component).
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      pending.clear();
+    };
+  }, []);
+
+  const api = useMemo<ToastApi>(
+    () => ({
+      success: (message) => push('success', message),
+      error: (message) => push('error', message),
+      info: (message) => push('info', message),
+    }),
+    [push],
+  );
+
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      <div className={styles.viewport} aria-live="polite">
+        {toasts.map((toast) => {
+          const Icon = ICON[toast.kind];
+          return (
+            <div key={toast.id} className={cx(styles.toast, styles[toast.kind])}>
+              <Icon size={16} aria-hidden="true" />
+              <span className={styles.msg}>{toast.message}</span>
+              <button
+                type="button"
+                className={styles.close}
+                onClick={() => remove(toast.id)}
+                aria-label="Cerrar aviso"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </ToastContext.Provider>
+  );
+}

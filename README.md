@@ -1,25 +1,49 @@
 # market-agri-front
 
-> Front-end shell: packages the domain UIs
+Container (shell) of the web interface of the **Marketplace Agrícola Huila** distributed system:
+React 19, TypeScript (strict) and Vite. It will own the **single HTTP client**, the **session**
+and the **design system** (`market-agri-docs/12-ux-ui/design-system.md`), and mount the domain
+portals (`auth-portal`, `catalog-portal`, `transactions-portal`) with Module Federation
+(Annex H; ADR-021). Sub-tasks: HU-PLAT-008 (shell), HU-PLAT-009 (simulated API),
+HU-PLAT-010 (status panel).
 
-Part of the **LMS Library** distributed system — team `lms-library`, Grupo 2.
-Governance and documentation live in [`library-docs`](https://github.com/code-corhuila/library-docs).
-
-## Branching
-
-Three permanent branches. **None of them accepts a direct commit** — you enter through a child
-branch and leave through a Pull Request.
+## Structure (Annex H)
 
 ```
-develop  <--PR--  feat/... fix/... chore/...
-qa       <--PR--  qa/...
-main     <--PR--  release/...  hotfix/...
+src/app/App.tsx         routes: home, one route per portal (protected ones behind RequireAuth), 404
+src/core/auth/          session, useSession, RequireAuth (exposed as shell/session, …/useSession, …/RequireAuth)
+src/core/errors/        RemoteBoundary: a portal that cannot load or fails only warns in its own area
+src/core/http/          the single HTTP client (shell/apiClient): gateway URL, token, X-Correlation-Id, 10 s
+src/remotes/            registry of the portals (route, title, loader), navigation by role, remotes.d.ts
+src/shared/ui/          design-system components, exposed as shell/ui (index.ts)
+src/layout/             frame of the application (Shell with the navigation, Wordmark), home and 404
+src/styles/             design tokens, base styles and utilities (12-ux-ui/design-system.md)
+test/unit/              tests that need nothing (job `ci`)
+test/component/         components in jsdom (job `ci`)
+test/docker/            the image: build context after .dockerignore, and the build (job `ci`)
+deploy/                 Dockerfile (npm ci), nginx.conf, compose.yml (included by infra)
 ```
 
-Promotion happens **by re-application** (`git cherry-pick -x`), never by merging one permanent
-branch into another: `merge develop -> qa` and `merge qa -> main` do not exist in this model.
+## Tests
 
-`main` requires **1 approval from `ariel5253`**. On `develop` and `qa` the team sets its own review
-rule.
+Levels and the branch where each one is a required check:
+`market-agri-docs/11-quality/testing-strategy.md`, _test levels per branch_. Every sub-task branch
+starts with a `test(...)` commit holding the failing tests.
 
-Full policy: `00-governance/branching-policy.md` in `library-docs`.
+```bash
+cp .env.example .env      # VITE_GATEWAY_URL and the portals' remoteEntry URLs
+npm ci
+npm run test:unit
+npm run test:component
+npm run build             # tsc + vite build → dist/
+npm run dev               # http://localhost:5173
+bash test/docker/image.sh # the image builds and never carries node_modules, dist or .env
+```
+
+The portals run on their own dev servers (5174 auth, 5175 catalog, 5176 transactions; see
+`.env.example`). A portal that is not running only shows its notice: the container still works.
+
+## Branches
+
+`develop` ← `feat/…`, `fix/…`, `chore/…` · `qa` ← promotion · `main` ← `release/…`, `hotfix/…`.
+Rules: `market-agri-docs/00-governance/git-conventions.md`.

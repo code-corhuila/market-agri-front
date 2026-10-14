@@ -1,0 +1,14 @@
+# Included by market-agri-infra (G8).
+services:
+  front:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    expose: ['80']
+    restart: unless-stopped
+    networks: [platform]
+
+networks:
+  platform:
+    name: platform-${ENV:?set ENV}
+    external: true

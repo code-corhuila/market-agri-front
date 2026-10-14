@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    // What the container exposes, typed from its own code: the test portal uses it like a portal.
+    "paths": {
+      "shell/ui": ["./src/shared/ui/index.ts"],
+      "shell/useSession": ["./src/core/auth/useSession.ts"]
+    }
+  },
+  "include": [
+    "src",
+    "test",
+    "e2e",
+    "config",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
+}
