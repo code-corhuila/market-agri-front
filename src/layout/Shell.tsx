@@ -15,7 +15,7 @@ const PROJECT_NAME =
 /**
  * Frame of the application (design-system.md, "Layout and responsive"): persistent header with
  * the wordmark and the navigation by role, the active page or portal in `main`, and the footer.
- * The backend status joins the footer with the status panel (HU-PLAT-010).
+ * The footer links the status panel of the platform (HU-PLAT-010).
  */
 export function Shell() {
   const session = useSession();
@@ -60,6 +60,7 @@ export function Shell() {
       <footer className={styles.footer}>
         <div className={`container ${styles.footerInner}`}>
           <span>{PROJECT_NAME}</span>
+          <Link to="/estado">Estado de la plataforma</Link>
         </div>
       </footer>
     </div>

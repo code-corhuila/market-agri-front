@@ -6,12 +6,14 @@ import { HomePage } from '../layout/HomePage';
 import { NotFoundPage } from '../layout/NotFoundPage';
 import { Shell } from '../layout/Shell';
 import { ToastProvider } from '../shared/ui/toast';
+import { StatusPage } from '../status/StatusPage';
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<HomePage />} />
+        <Route path="estado" element={<StatusPage />} />
         {PORTALS.map((portal) => (
           <Route
             key={portal.name}
