@@ -35,7 +35,7 @@ const codes = (pairs: readonly (readonly [string, string])[]) => pairs.map(([cod
 
 const STATUSES = ['ACTIVE', 'OUT_OF_STOCK'];
 const MAX_QUANTITY = 9_999_999_999.99;
-const MAX_PRICE = 999_999_999_999;
+const MAX_PRICE_CENTS = 999_999_999_999;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const INVALID = 'La solicitud tiene datos inválidos.';
 const NOT_FOUND = 'El producto no existe.';
@@ -84,12 +84,13 @@ function readWrite(body: Record<string, unknown>) {
   ) {
     details.push({ field: 'quantity', message: 'Debe ser un número con máximo 2 decimales.' });
   }
-  const price = body.price as number;
-  if (!Number.isInteger(price) || price > MAX_PRICE) {
-    details.push({ field: 'price', message: 'Debe ser un valor entero en pesos.' });
+  // ADR-029: an integer number of centavos; a decimal, a text or the old `price` field is a 400.
+  const priceCents = body.priceCents as number;
+  if (!Number.isInteger(priceCents) || priceCents > MAX_PRICE_CENTS) {
+    details.push({ field: 'priceCents', message: 'Debe ser un número entero de centavos.' });
   }
   const municipality = text('municipality', 100);
-  return { details, product: { name, category, unit, quantity, price, municipality } };
+  return { details, product: { name, category, unit, quantity, priceCents, municipality } };
 }
 
 /** A path {id}: 400 when it is not a UUID (D-C23), 404 when missing or deleted (D-C5). */
@@ -106,8 +107,11 @@ function find(request: Request, id: string): { product: MockProduct } | { refusa
     : { refusal: errorBody(request, 404, 'PRODUCT_NOT_FOUND', NOT_FOUND) };
 }
 
-function domainError(request: Request, { price, quantity }: { price: number; quantity: number }) {
-  if (price <= 0)
+function domainError(
+  request: Request,
+  { priceCents, quantity }: { priceCents: number; quantity: number },
+) {
+  if (priceCents <= 0)
     return errorBody(request, 422, 'PRICE_NOT_POSITIVE', 'El precio debe ser mayor que cero.');
   if (quantity < 0)
     return errorBody(request, 422, 'QUANTITY_NEGATIVE', 'La cantidad no puede ser negativa.');
