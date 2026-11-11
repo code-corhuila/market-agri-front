@@ -112,7 +112,7 @@ test('a buyer completes checkout and insufficient stock changes neither product 
   expect(webhook).toBeOK();
 
   await page.goto(`/transacciones/${created.transaction.id}`);
-  await expect(page.getByText('Confirmada')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Confirmada', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/\$\s*170\.000/)).toBeVisible();
 
   const stockAfterConfirmed = await product(request);
