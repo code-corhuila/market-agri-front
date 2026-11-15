@@ -43,7 +43,8 @@ export interface MockProduct {
   category: string;
   unit: string;
   quantity: number;
-  price: number;
+  /** Integer centavos (ADR-029): 18500000 is $ 185.000. */
+  priceCents: number;
   currency: 'COP';
   municipality: string;
   status: 'ACTIVE' | 'OUT_OF_STOCK';
@@ -55,7 +56,7 @@ export interface MockProduct {
 
 type ProductFields = Pick<
   MockProduct,
-  'name' | 'category' | 'unit' | 'quantity' | 'price' | 'municipality'
+  'name' | 'category' | 'unit' | 'quantity' | 'priceCents' | 'municipality'
 >;
 
 /** A product as E-13 creates it: owner from the token, status from the quantity (INV-009). */
@@ -83,22 +84,22 @@ const ANA = SEED_USERS[0]!;
 const LUIS = { id: '3c2b1a09-8f7e-4d6c-9b5a-4e3d2c1b0a99', name: 'Luis Gómez' };
 type Row = [string, string, string, number, number, string, typeof ANA | typeof LUIS];
 
-// name, category, unit, quantity, price (whole pesos, ADR-026), municipality, producer.
+// name, category, unit, quantity, priceCents (integer centavos, ADR-029), municipality, producer.
 const ROWS: Row[] = [
-  ['Café especial de altura', 'CAFE', 'ARROBA', 12.5, 185000, 'Garzón', ANA],
-  ['Plátano hartón', 'FRUTAS', 'CANASTA', 30, 45000, 'Garzón', ANA],
-  ['Cacao en grano', 'CACAO', 'KILOGRAMO', 80, 14000, 'Neiva', LUIS],
-  ['Lulo', 'FRUTAS', 'KILOGRAMO', 0, 6000, 'Pitalito', LUIS],
-  ['Queso campesino', 'LACTEOS', 'LIBRA', 20, 12000, 'La Plata', ANA],
+  ['Café especial de altura', 'CAFE', 'ARROBA', 12.5, 18_500_000, 'Garzón', ANA],
+  ['Plátano hartón', 'FRUTAS', 'CANASTA', 30, 4_500_000, 'Garzón', ANA],
+  ['Cacao en grano', 'CACAO', 'KILOGRAMO', 80, 1_400_000, 'Neiva', LUIS],
+  ['Lulo', 'FRUTAS', 'KILOGRAMO', 0, 600_000, 'Pitalito', LUIS],
+  ['Queso campesino', 'LACTEOS', 'LIBRA', 20, 1_200_000, 'La Plata', ANA],
 ];
 
 /** Catalog seed: decimal quantities (D-C7), accented municipalities, one product out of stock. */
 export const SEED_PRODUCTS: readonly MockProduct[] = ROWS.map(
-  ([name, category, unit, quantity, price, municipality, owner], index) =>
+  ([name, category, unit, quantity, priceCents, municipality, owner], index) =>
     newProduct(
       `5e1f0c2a-7b3d-4e8f-9a6b-00000000000${index + 1}`,
       owner,
-      { name, category, unit, quantity, price, municipality },
+      { name, category, unit, quantity, priceCents, municipality },
       `2026-10-0${index + 1}T14:00:00Z`,
     ),
 );
@@ -129,8 +130,8 @@ export interface MockTransaction {
   producerName: string;
   quantity: number;
   unit: string;
-  unitPrice: number;
-  amount: number;
+  unitPriceCents: number;
+  amountCents: number;
   currency: 'COP';
   status: 'PENDING' | 'CONFIRMED' | 'FAILED';
   createdAt: string;
