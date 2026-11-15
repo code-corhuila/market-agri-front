@@ -7,7 +7,8 @@ import { SEED_PRODUCTS, SEED_USERS, mockDb, resetMockDb } from '../../../src/moc
 import { handlersFor } from '../../../src/mocks/handlers';
 
 // HU-PLAT-009 for the purchase (G1.10): chat E-30/E-32/E-34, the checkout saga E-40 (workflow)
-// and transactions E-41/E-42, with the same handlers as the simulated mode. Money in whole pesos.
+// and transactions E-41/E-42, with the same handlers as the simulated mode. Money in integer
+// centavos (ADR-029).
 const GATEWAY = 'http://localhost:8080';
 const server = setupServer();
 const coffee = SEED_PRODUCTS[0]!; // Ana's, 12.5 arrobas at $ 185.000
@@ -25,11 +26,16 @@ interface Transaction {
   id: string;
   status: string;
   quantity: number;
-  unitPrice: number;
-  amount: number;
+  unitPriceCents: number;
+  amountCents: number;
   currency: string;
   producerId: string;
-  ledger: { grossAmount: number; platformFee: number; netAmount: number; status: string } | null;
+  ledger: {
+    grossAmountCents: number;
+    platformFeeCents: number;
+    netAmountCents: number;
+    status: string;
+  } | null;
 }
 interface Checkout {
   transaction: Transaction;
@@ -126,8 +132,8 @@ describe('simulated checkout saga (E-40)', () => {
     expect(transaction).toMatchObject({
       status: 'PENDING',
       quantity: 2.5,
-      unitPrice: 185000,
-      amount: 462500,
+      unitPriceCents: 18_500_000,
+      amountCents: 46_250_000,
       currency: 'COP',
       ledger: null,
     });
@@ -135,10 +141,18 @@ describe('simulated checkout saga (E-40)', () => {
     expect(stockOf(coffee.id)).toBe(10);
   });
 
-  it('rounds the amount half up to whole pesos', async () => {
-    mockDb.products.find((product) => product.id === coffee.id)!.price = 333;
+  it('rounds the amount half up to whole centavos', async () => {
+    mockDb.products.find((product) => product.id === coffee.id)!.priceCents = 333;
     const conversation = await readyToBuy();
-    expect((await checkout(conversation.id, 1.5)).transaction.amount).toBe(500); // 499.5
+    expect((await checkout(conversation.id, 1.5)).transaction.amountCents).toBe(500); // 499.5
+  });
+
+  it('computes the amount of ADR-029: 12.5 × 680000 = 8500000 centavos', async () => {
+    mockDb.products.find((product) => product.id === coffee.id)!.priceCents = 680_000;
+    const conversation = await readyToBuy();
+    const { transaction } = await checkout(conversation.id, 12.5);
+    expect([transaction.unitPriceCents, transaction.amountCents]).toEqual([680_000, 8_500_000]);
+    expect(transaction).not.toHaveProperty('amount');
   });
 
   it('answers a retry with the same Idempotency-Key with the original, reserving once', async () => {
@@ -212,10 +226,12 @@ describe('simulated transactions (E-41, E-42)', () => {
     expect(confirmed).toMatchObject({ status: 'CONFIRMED', ledger: null });
 
     await loginAs('PRODUCER');
-    expect((await apiClient.get<Transaction>(path)).ledger).toMatchObject({
-      grossAmount: 370000,
-      platformFee: 0,
-      netAmount: 370000,
+    const { ledger } = await apiClient.get<Transaction>(path);
+    expect(ledger).not.toHaveProperty('grossAmount');
+    expect(ledger).toMatchObject({
+      grossAmountCents: 37_000_000,
+      platformFeeCents: 0,
+      netAmountCents: 37_000_000,
       status: 'PENDING_DISBURSEMENT',
     });
   });

@@ -7,7 +7,7 @@ import { SEED_PRODUCTS, SEED_USERS, resetMockDb } from '../../../src/mocks/db';
 import { handlersFor } from '../../../src/mocks/handlers';
 
 // HU-PLAT-009 for the catalog domain (G1.9): E-10…E-14, E-18…E-20 of api-contract §4.2, with the
-// same handlers as the simulated mode. Money in whole pesos (ADR-026), pages as in D-C24.
+// same handlers as the simulated mode. Money in integer centavos (ADR-029), pages as in D-C24.
 const GATEWAY = 'http://localhost:8080';
 const PRODUCTS = '/api/v1/catalog/products';
 const server = setupServer();
@@ -18,7 +18,7 @@ interface ProductView {
   name: string;
   category: string;
   quantity: number;
-  price: number;
+  priceCents: number;
   currency: string;
   municipality: string;
   status: string;
@@ -36,7 +36,7 @@ const write = {
   category: 'FRUTAS',
   unit: 'KILOGRAMO',
   quantity: 40,
-  price: 6500,
+  priceCents: 650000,
   municipality: 'Garzón',
 };
 
@@ -73,16 +73,22 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('simulated catalog: browse (E-10, E-11)', () => {
-  it('lists anonymously as Page<T>, newest first, with prices as whole pesos', async () => {
+  it('lists anonymously as Page<T>, newest first, with priceCents in integer centavos', async () => {
     const page = await list();
     expect(page.meta).toEqual({ page: 1, limit: 20, total: SEED_PRODUCTS.length, totalPages: 1 });
     const dates = page.data.map((product) => product.createdAt);
     expect(dates).toEqual([...dates].sort().reverse());
     for (const product of page.data) {
-      expect(Number.isInteger(product.price)).toBe(true);
+      expect(Number.isInteger(product.priceCents)).toBe(true);
+      expect(product).not.toHaveProperty('price');
       expect(product.currency).toBe('COP');
       expect(['ACTIVE', 'OUT_OF_STOCK']).toContain(product.status);
     }
+  });
+
+  it('answers the seed in centavos: the coffee at $ 185.000 is 18500000', async () => {
+    const coffee = await apiClient.get<ProductView>(`${PRODUCTS}/${SEED_PRODUCTS[0]!.id}`);
+    expect(coffee.priceCents).toBe(18_500_000);
   });
 
   it('filters by municipality without accents nor case, AND the category', async () => {
@@ -155,7 +161,7 @@ describe('simulated catalog: publish (E-13)', () => {
     expect(first.headers.get('Location')).toBe(`${PRODUCTS}/${created.id}`);
     expect(created).toMatchObject({
       producerId: user('PRODUCER').id,
-      price: 6500,
+      priceCents: 650000,
       currency: 'COP',
       status: 'ACTIVE',
       photoUrl: null,
@@ -178,8 +184,14 @@ describe('simulated catalog: publish (E-13)', () => {
 
   it.each([
     ['a missing Idempotency-Key', undefined, write, 'Idempotency-Key'],
-    ['a price with decimals', 'k-decimals', { ...write, price: 6500.5 }, 'price'],
-    ['a price as text', 'k-text-price', { ...write, price: '6500' }, 'price'],
+    ['a price with decimals', 'k-decimals', { ...write, priceCents: 12.5 }, 'priceCents'],
+    ['a price as text', 'k-text-price', { ...write, priceCents: '650000' }, 'priceCents'],
+    [
+      'a price in the old field',
+      'k-old-field',
+      { ...write, priceCents: undefined, price: 6500 },
+      'priceCents',
+    ],
     ['an unknown unit', 'k-unit', { ...write, unit: 'TONELADA' }, 'unit'],
     ['a quantity with 3 decimals', 'k-qty', { ...write, quantity: 1.125 }, 'quantity'],
     ['an empty name', 'k-name', { ...write, name: '  ' }, 'name'],
@@ -193,7 +205,7 @@ describe('simulated catalog: publish (E-13)', () => {
   });
 
   it.each([
-    [{ ...write, price: 0 }, 'PRICE_NOT_POSITIVE', 'El precio debe ser mayor que cero.'],
+    [{ ...write, priceCents: 0 }, 'PRICE_NOT_POSITIVE', 'El precio debe ser mayor que cero.'],
     [{ ...write, quantity: -1 }, 'QUANTITY_NEGATIVE', 'La cantidad no puede ser negativa.'],
   ])('breaks a domain rule with 422 %#', async (body, code, message) => {
     await loginAs('PRODUCER');
@@ -220,9 +232,13 @@ describe('simulated catalog: my products, edit and delete (E-12, E-14, E-18)', (
     const edited = await apiClient.put<ProductView>(`${PRODUCTS}/${ownProduct().id}`, {
       ...write,
       quantity: 0,
-      price: 7000,
+      priceCents: 700000,
     });
-    expect(edited).toMatchObject({ id: ownProduct().id, price: 7000, status: 'OUT_OF_STOCK' });
+    expect(edited).toMatchObject({
+      id: ownProduct().id,
+      priceCents: 700000,
+      status: 'OUT_OF_STOCK',
+    });
   });
 
   it('answers 403 NOT_PRODUCT_OWNER on a product of another producer', async () => {

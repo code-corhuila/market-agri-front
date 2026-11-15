@@ -26,9 +26,9 @@ function hundredths(value: unknown): number | null {
   return Math.abs(value * 100 - scaled) < 1e-6 ? scaled : null;
 }
 
-/** D-C11 with ADR-026: round_half_up(quantity × unitPrice, 0), in integers. */
-const amountOf = (quantityHundredths: number, unitPrice: number) =>
-  Math.floor((quantityHundredths * unitPrice + 50) / 100);
+/** D-C11 with ADR-029: round_half_up(quantity × unitPriceCents, 0), in integer centavos. */
+const amountCentsOf = (quantityHundredths: number, unitPriceCents: number) =>
+  Math.floor((quantityHundredths * unitPriceCents + 50) / 100);
 
 /** What the gateway's webhook (E-43) would do: a PENDING payment is confirmed after a while. */
 function settle(transaction: MockTransaction): MockTransaction {
@@ -42,13 +42,13 @@ function settle(transaction: MockTransaction): MockTransaction {
 /** TransactionView: the ledger only when CONFIRMED and for the producer or ADMIN (§4.4). */
 function viewFor(callerId: string, role: string) {
   return (transaction: MockTransaction) => {
-    const { amount, status, confirmedAt, producerId } = settle(transaction);
+    const { amountCents, status, confirmedAt, producerId } = settle(transaction);
     const seesLedger = status === 'CONFIRMED' && (role === 'ADMIN' || callerId === producerId);
     const ledger = seesLedger
       ? {
-          grossAmount: amount,
-          platformFee: 0,
-          netAmount: amount,
+          grossAmountCents: amountCents,
+          platformFeeCents: 0,
+          netAmountCents: amountCents,
           currency: 'COP',
           status: 'PENDING_DISBURSEMENT',
           createdAt: confirmedAt,
@@ -208,8 +208,8 @@ export const workflowHandlers = [
       producerName,
       quantity: wanted / 100,
       unit: product.unit,
-      unitPrice: product.price,
-      amount: amountOf(wanted, product.price),
+      unitPriceCents: product.priceCents,
+      amountCents: amountCentsOf(wanted, product.priceCents),
       currency: 'COP',
       status: 'PENDING',
       createdAt: now(),
